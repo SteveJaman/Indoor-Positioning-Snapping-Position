@@ -2,20 +2,20 @@ CPE 4800 F25 - Senior Design
 ============================
 |          Readme          |
 ============================
-**Design Project**
+**Design Project**:
 The compact, all-in-one cart built specifically for grocery delivery personnel. 
 It features integrated Self-Checkout and Live In-Store Position Tracking to make shopping faster and easier.
 
-**Team**
+**Team**:
 SyntaxError
 
-**Members**
+**Members**:
 Margarita, Thi, Carter, Steven, Anthony
 
-**Indoor Position Team**
+**Indoor Position Team**:
 Steven and Anthony
 
-**Description**
+**Description**:
 This ESP32 code implements an advanced indoor positioning system using Bluetooth Low Energy (BLE) trilateration and sophisticated filtering 
 to track a device's position within a defined 6x6 meter area, then transmits the result via MQTT. The system works by continuously scanning 
 for four fixed BLE beacons, calculating the distance to each beacon based on a median-filtered Received Signal Strength Indicator (RSSI), 
