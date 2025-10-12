@@ -22,7 +22,7 @@ PubSubClient client(espClient);
 #define PATH_LOSS_EXPONENT 2.8
 #define GRID_SIZE 0.1
 #define SNAP_RESOLUTION 1.0 // Snap to nearest 1 meter
-#define ROOM_SIZE 6.0 // Room Size is now 6.0 meters
+#define ROOM_SIZE 7.0 // Room Size is now 6.0 meters
 
 // ----------------- BEACON CONFIG -----------------
 struct Beacon {
@@ -43,15 +43,22 @@ struct Beacon {
 // 6m x 6m room - strategic beacon placement for best coverage
 Beacon beacons[] = {
   {"F7:23:2C:3B:84:B4", "BEACON_1", 0.0, 0.0, -58, -1, 0, {}, 0, false, 0, 0}, // Corner 1
-  {"E5:BD:D7:34:2A:73", "BEACON_2", 6.0, 0.0, -58, -1, 0, {}, 0, false, 0, 0}, // Corner 2 (X=6.0)
-  {"C2:E0:A6:C2:4F:F2", "BEACON_3", 0.0, 6.0, -58, -1, 0, {}, 0, false, 0, 0}, // Corner 3 (Y=6.0)
-  {"FC:FE:32:00:1F:FD", "BEACON_4", 6.0, 6.0, -58, -1, 0, {}, 0, false, 0, 0} // Corner 4 (X=6.0, Y=6.0)
+  {"E5:BD:D7:34:2A:73", "BEACON_2", 7.0, 0.0, -58, -1, 0, {}, 0, false, 0, 0}, // Corner 2 (X=7.0)
+  {"C2:E0:A6:C2:4F:F2", "BEACON_3", 0.0, 7.0, -58, -1, 0, {}, 0, false, 0, 0}, // Corner 3 (Y=7.0)
+  {"FC:FE:32:00:1F:FD", "BEACON_4", 7.0, 7.0, -58, -1, 0, {}, 0, false, 0, 0} // Corner 4 (X=7.0, Y=7.0)
 };
 
 const int NUM_BEACONS = sizeof(beacons) / sizeof(beacons[0]);
 const int MIN_VALID_BEACONS = 3;
 
 BLEScan* pBLEScan;
+
+// --- Manual Control Variables ---
+bool manualControl = false;
+float manualX = 3.0;
+float manualY = 3.0;
+unsigned long lastSerialInput = 0;
+const unsigned long MANUAL_CONTROL_TIMEOUT = 10000; // 10 seconds timeout for manual control
 
 // --- Advanced Kalman Filter (2D) ---
 struct KalmanFilter2D {
@@ -63,8 +70,8 @@ struct KalmanFilter2D {
 };
 
 KalmanFilter2D kf = {
-  .x = 3.0,     // Start in center of 6x6 room (3.0)
-  .y = 3.0,     // Start in center of 6x6 room (3.0)
+  .x = 3.0,     // Start in center of 7x7 room (3.0)
+  .y = 3.0,     // Start in center of 7x7 room (3.0)
   .P = {{1.0, 0.0}, {0.0, 1.0}},
   .Q = {{0.5, 0.0}, {0.0, 0.5}},
   .R = 2.0
@@ -208,6 +215,97 @@ class MyAdvertisedDeviceCallbacks: public BLEAdvertisedDeviceCallbacks {
     }
   }
 };
+
+// --- Serial Input Handler ---
+void handleSerialInput() {
+  if (Serial.available() > 0) {
+    String input = Serial.readStringUntil('\n');
+    input.trim();
+    
+    // Check if input is in format "x,y"
+    int commaIndex = input.indexOf(',');
+    if (commaIndex > 0) {
+      String xStr = input.substring(0, commaIndex);
+      String yStr = input.substring(commaIndex + 1);
+      
+      float newX = xStr.toFloat();
+      float newY = yStr.toFloat();
+      
+      // Validate coordinates
+      if (newX >= 0 && newX <= ROOM_SIZE && newY >= 0 && newY <= ROOM_SIZE) {
+        manualX = newX;
+        manualY = newY;
+        manualControl = true;
+        lastSerialInput = millis();
+        
+        Serial.printf("🎮 MANUAL CONTROL: Position set to (%.2f, %.2f)\n", manualX, manualY);
+        Serial.println("Type 'auto' to return to automatic positioning");
+      } else {
+        Serial.println("❌ Invalid coordinates! Use format: x,y (0-6)");
+      }
+    } 
+    // Check for "auto" command to return to automatic mode
+    else if (input.equalsIgnoreCase("auto")) {
+      manualControl = false;
+      Serial.println("🔄 Returning to AUTOMATIC positioning mode");
+    }
+    // Check for "help" command
+    else if (input.equalsIgnoreCase("help")) {
+      Serial.println("\n📋 SERIAL COMMANDS:");
+      Serial.println("  x,y          - Set manual position (e.g., 2.5,3.0)");
+      Serial.println("  auto         - Return to automatic positioning");
+      Serial.println("  help         - Show this help message");
+      Serial.println("  test         - Run test sequence");
+      Serial.println("  Manual position range: 0.0 to 6.0 for both X and Y");
+    }
+    // Test command
+    else if (input.equalsIgnoreCase("test")) {
+      Serial.println("🧪 Running test sequence...");
+      runTestSequence();
+    }
+  }
+  
+  // Auto-return to automatic mode after timeout
+  if (manualControl && (millis() - lastSerialInput > MANUAL_CONTROL_TIMEOUT)) {
+    manualControl = false;
+    Serial.println("⏰ Manual control timeout - returning to automatic mode");
+  }
+}
+
+// --- Test Sequence ---
+void runTestSequence() {
+  Serial.println("\n🧪 TEST SEQUENCE STARTED");
+  Serial.println("Moving through predefined positions...");
+  
+  // Test positions
+  float testPositions[][2] = {
+    {0.0, 0.0}, {1.5, 1.5}, {3.0, 3.0}, {4.5, 4.5}, {6.0, 6.0},
+    {3.0, 0.0}, {0.0, 3.0}, {6.0, 3.0}, {3.0, 6.0}
+  };
+  
+  int numTests = sizeof(testPositions) / sizeof(testPositions[0]);
+  
+  for (int i = 0; i < numTests; i++) {
+    manualX = testPositions[i][0];
+    manualY = testPositions[i][1];
+    manualControl = true;
+    
+    // Apply snapping to test positions
+    float snappedX = round(manualX / SNAP_RESOLUTION) * SNAP_RESOLUTION;
+    float snappedY = round(manualY / SNAP_RESOLUTION) * SNAP_RESOLUTION;
+    snappedX = constrainValue(snappedX, 0.0, ROOM_SIZE);
+    snappedY = constrainValue(snappedY, 0.0, ROOM_SIZE);
+    
+    Serial.printf("🧪 TEST %d/%d: Manual(%.1f,%.1f) -> Snapped(%.1f,%.1f)\n",
+                  i+1, numTests, manualX, manualY, snappedX, snappedY);
+    
+    delay(2000); // Wait 2 seconds between test positions
+  }
+  
+  manualControl = false;
+  Serial.println("🧪 TEST SEQUENCE COMPLETED");
+  Serial.println("Returning to automatic mode");
+}
 
 // --- Initialize Particle Filter ---
 void initializeParticleFilter() {
@@ -448,7 +546,9 @@ void setup() {
   Serial.begin(115200);
   delay(2000);
 
-  Serial.println("ESP32 ADVANCED INDOOR POSITIONING - MQTT ACTIVE");
+  Serial.println("==========================================");
+  Serial.println("ESP32 INDOOR POSITIONING - MQTT ACTIVE");
+  Serial.println("==========================================");
   Serial.println("Beacon Configuration (6x6m):");
   for (int i = 0; i < NUM_BEACONS; i++) {
     Serial.printf("  %s: (%.1f, %.1f) | RefRSSI: %.0f\n",
@@ -457,6 +557,15 @@ void setup() {
                   beacons[i].posY,
                   beacons[i].calibratedRefRSSI);
   }
+
+  Serial.println("\n📋 SERIAL COMMANDS:");
+  Serial.println("  x,y          - Set manual position (e.g., 2.5,3.0)");
+  Serial.println("  auto         - Return to automatic positioning");
+  Serial.println("  test         - Run test sequence");
+  Serial.println("  help         - Show help message");
+  Serial.println("  Manual position range: 0.0 to 6.0 for both X and Y");
+  Serial.println("\n📍 OUTPUT: Serial Monitor + MQTT to Pi");
+  Serial.println("==========================================\n");
 
   BLEDevice::init("ESP32_Positioning_Tag");
   pBLEScan = BLEDevice::getScan();
@@ -472,12 +581,16 @@ void setup() {
     }
   }
 
-  setup_wifi();  // Connects to Wi-Fi
-  client.setServer(mqtt_server, 1883); // Set MQTT server
+  // Enable WiFi and MQTT
+  setup_wifi();
+  client.setServer(mqtt_server, 1883);
 }
 
 // --- Main Loop ---
 void loop() {
+  // Handle serial input for manual control
+  handleSerialInput();
+  
   // Check and reconnect Wi-Fi and MQTT if needed
   if (!client.connected() || WiFi.status() != WL_CONNECTED) {
     reconnect();
@@ -599,11 +712,26 @@ void loop() {
   Serial.printf("📍 FINAL POS: Filtered(%.2f,%.2f) -> Snapped(%.2f,%.2f) | Unc: %.2fm\n",
                 finalX, finalY, snappedX, snappedY, finalReportedUncertainty);
 
-  // --- MQTT Publishing (Re-Enabled) ---
+  // --- MQTT PUBLISHING TO PI (RE-ENABLED) ---
   if (client.connected()) {
     char payload[64];
-    // Format: X,Y,UNCERTAINTY
-    sprintf(payload, "%.2f,%.2f,%.2f", snappedX, snappedY, finalReportedUncertainty);
+    
+    if (manualControl) {
+      // Use manual coordinates (apply same snapping to manual positions)
+      float manualSnappedX = round(manualX / SNAP_RESOLUTION) * SNAP_RESOLUTION;
+      float manualSnappedY = round(manualY / SNAP_RESOLUTION) * SNAP_RESOLUTION;
+      manualSnappedX = constrainValue(manualSnappedX, 0.0, ROOM_SIZE);
+      manualSnappedY = constrainValue(manualSnappedY, 0.0, ROOM_SIZE);
+      
+      sprintf(payload, "%.2f,%.2f,%.2f", manualSnappedX, manualSnappedY, 0.1);
+      Serial.printf("🎮 MQTT MANUAL: (%.2f,%.2f,%.2f) | Manual(%.2f,%.2f) -> Snapped(%.2f,%.2f)\n", 
+                    manualSnappedX, manualSnappedY, 0.1, manualX, manualY, manualSnappedX, manualSnappedY);
+    } else {
+      // Use calculated coordinates
+      sprintf(payload, "%.2f,%.2f,%.2f", snappedX, snappedY, finalReportedUncertainty);
+      Serial.printf("📍 MQTT AUTOMATIC: (%.2f,%.2f,%.2f)\n", snappedX, snappedY, finalReportedUncertainty);
+    }
+    
     client.publish(mqtt_topic, payload);
     Serial.println("📤 Data published to MQTT");
   } else {
