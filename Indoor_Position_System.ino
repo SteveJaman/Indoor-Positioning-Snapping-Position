@@ -290,14 +290,22 @@ void runTestSequence() {
     manualY = testPositions[i][1];
     manualControl = true;
     
-    // Apply snapping to test positions
+    // Apply snapping with offset to test positions
     float snappedX = round(manualX / SNAP_RESOLUTION) * SNAP_RESOLUTION;
     float snappedY = round(manualY / SNAP_RESOLUTION) * SNAP_RESOLUTION;
+    
+    // Apply 0.5m offset to snapped coordinates
+    snappedX += 0.5;
+    snappedY += 0.5;
+    
     snappedX = constrainValue(snappedX, 0.0, ROOM_SIZE);
     snappedY = constrainValue(snappedY, 0.0, ROOM_SIZE);
     
-    Serial.printf("🧪 TEST %d/%d: Manual(%.1f,%.1f) -> Snapped(%.1f,%.1f)\n",
-                  i+1, numTests, manualX, manualY, snappedX, snappedY);
+    Serial.printf("🧪 TEST %d/%d: Manual(%.1f,%.1f) -> Snapped(%.1f,%.1f) -> Final(%.1f,%.1f)\n",
+                  i+1, numTests, manualX, manualY, 
+                  round(manualX / SNAP_RESOLUTION) * SNAP_RESOLUTION,
+                  round(manualY / SNAP_RESOLUTION) * SNAP_RESOLUTION,
+                  snappedX, snappedY);
     
     delay(2000); // Wait 2 seconds between test positions
   }
@@ -701,31 +709,47 @@ void loop() {
   float finalX, finalY;
   getParticleFilterPosition(finalX, finalY);
 
-  // Grid snapping
+  // Grid snapping with 0.5m offset
   float snappedX = round(finalX / SNAP_RESOLUTION) * SNAP_RESOLUTION;
   float snappedY = round(finalY / SNAP_RESOLUTION) * SNAP_RESOLUTION;
-
+  
+  // Apply 0.5m offset to snapped coordinates
+  snappedX += 0.5;
+  snappedY += 0.5;
+  
   snappedX = constrainValue(snappedX, 0.0, ROOM_SIZE);
   snappedY = constrainValue(snappedY, 0.0, ROOM_SIZE);
 
   // Print the final result
-  Serial.printf("📍 FINAL POS: Filtered(%.2f,%.2f) -> Snapped(%.2f,%.2f) | Unc: %.2fm\n",
-                finalX, finalY, snappedX, snappedY, finalReportedUncertainty);
+  Serial.printf("📍 FINAL POS: Filtered(%.2f,%.2f) -> Snapped(%.2f,%.2f) -> Final(%.2f,%.2f) | Unc: %.2fm\n",
+                finalX, finalY, 
+                round(finalX / SNAP_RESOLUTION) * SNAP_RESOLUTION,  // Original snapped
+                round(finalY / SNAP_RESOLUTION) * SNAP_RESOLUTION,  // Original snapped
+                snappedX, snappedY,  // Final with offset
+                finalReportedUncertainty);
 
   // --- MQTT PUBLISHING TO PI (RE-ENABLED) ---
   if (client.connected()) {
     char payload[64];
     
     if (manualControl) {
-      // Use manual coordinates (apply same snapping to manual positions)
+      // Use manual coordinates (apply same snapping with offset to manual positions)
       float manualSnappedX = round(manualX / SNAP_RESOLUTION) * SNAP_RESOLUTION;
       float manualSnappedY = round(manualY / SNAP_RESOLUTION) * SNAP_RESOLUTION;
+      
+      // Apply 0.5m offset to manual snapped coordinates
+      manualSnappedX += 0.5;
+      manualSnappedY += 0.5;
+      
       manualSnappedX = constrainValue(manualSnappedX, 0.0, ROOM_SIZE);
       manualSnappedY = constrainValue(manualSnappedY, 0.0, ROOM_SIZE);
       
       sprintf(payload, "%.2f,%.2f,%.2f", manualSnappedX, manualSnappedY, 0.1);
-      Serial.printf("🎮 MQTT MANUAL: (%.2f,%.2f,%.2f) | Manual(%.2f,%.2f) -> Snapped(%.2f,%.2f)\n", 
-                    manualSnappedX, manualSnappedY, 0.1, manualX, manualY, manualSnappedX, manualSnappedY);
+      Serial.printf("🎮 MQTT MANUAL: (%.2f,%.2f,%.2f) | Manual(%.2f,%.2f) -> Snapped(%.2f,%.2f) -> Final(%.2f,%.2f)\n", 
+                    manualSnappedX, manualSnappedY, 0.1, manualX, manualY, 
+                    round(manualX / SNAP_RESOLUTION) * SNAP_RESOLUTION,
+                    round(manualY / SNAP_RESOLUTION) * SNAP_RESOLUTION,
+                    manualSnappedX, manualSnappedY);
     } else {
       // Use calculated coordinates
       sprintf(payload, "%.2f,%.2f,%.2f", snappedX, snappedY, finalReportedUncertainty);
