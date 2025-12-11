@@ -86,20 +86,27 @@ The Smart Delivery Cart integrates several key hardware components to fulfill it
 
 ## 💻 Code Structure & Usage
 
-*(This section is a placeholder. You should fill this in with actual setup instructions for a developer.)*
+The project's software is split into two main sections: the **Embedded C++** code for the IPS sensor node, and three interconnected **Python** applications for the backend, inventory, and user interface.
 
-### Prerequisites
-* Arduino IDE or VS Code with PlatformIO
-* ESP32 Board Support Package
-* Required libraries: `[List key libraries like PubSubClient, Kalman, etc.]`
+### Python Application Components
 
-### Setup Instructions
-1.  Clone the repository: `git clone [Your Repo URL]`
-2.  Configure Wi-Fi credentials and MQTT broker details in `config.h`.
-3.  Upload the code to the ESP32.
+| Component | File | Role & Interaction |
+| :--- | :--- | :--- |
+| **Backend Server** | `Server.py` | The central component. It hosts the MQTT broker/client logic, receives raw position data from the ESP32, validates RFID scans, manages the product database, and relays necessary information to the Client. |
+| **Client Application**| `Client.py` | The user-facing application (UI/GUI). It subscribes to the MQTT position topic to enable **live plotting** of the cart on the store map and handles the entire **self-checkout** user experience. |
+| **RFID Reader Logic**| `RFID.py` | Runs the hardware interface for the RFID scanner. It continuously reads product tags and publishes the scanned IDs (via MQTT or direct network call) to the `Server.py` for item lookup and inventory updating. |
 
-## 🚀 Development Status
+### Prerequisites & Setup
 
-**Status:** Completed (Final Report Submitted)
+#### **1. General Requirements**
+* **Communication:** All components rely on a running MQTT broker instance.
+* **Language:** Python 3.x is required for the Server, Client, and RFID logic.
 
-**Report File:** `CPE 4850 Final report(4).docx` (Located in the root directory for reference)
+#### **2. Python Dependencies**
+The following dependencies must be installed to run the Python components:
+* `paho-mqtt` (for all components)
+* *Further libraries (e.g., for database access or GUI)*
+
+```bash
+# Example installation command for Python dependencies
+pip install paho-mqtt
