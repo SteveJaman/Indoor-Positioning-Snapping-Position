@@ -16,6 +16,8 @@ The **Smart Delivery Cart** is a compact, all-in-one hardware solution designed 
 | Core Sub-System | Team Members |
 | :--- | :--- |
 | **Indoor Positioning System (IPS)** | Steven and Anthony |
+| **Front End Graphical User Interface Design** | Margaritha and Thi |
+| **Hardware Design and 3D Modeling** | Carter |
 
 ---
 
