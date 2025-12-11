@@ -1,13 +1,13 @@
-# CPE 4850 F25 - Senior Design: The Smart Delivery Cart
+# CPE 4800 F25 - Senior Design: The Smart Delivery Cart
 
-## Project Overview
+## 🛒 Project Overview
 
 The **Smart Delivery Cart** is a compact, all-in-one hardware solution designed to drastically improve the efficiency of grocery delivery personnel. It integrates advanced technology to make the in-store shopping process faster and easier through two primary features:
 
-1.  **Self-Checkout Capability:** Streamlining the payment and inventory process.
-2.  **Live In-Store Position Tracking:** Providing real-time user location within the store layout.
+1.  **Self-Checkout Capability:** Streamlining the payment and inventory process using **RFID**.
+2.  **Live In-Store Position Tracking:** Providing real-time user location within the store layout using **BLE IPS**.
 
-## Team & Roles
+## 👥 Team & Roles
 
 | Team Name | Members |
 | :--- | :--- |
@@ -17,7 +17,33 @@ The **Smart Delivery Cart** is a compact, all-in-one hardware solution designed 
 | :--- | :--- |
 | **Indoor Positioning System (IPS)** | Steven and Anthony |
 
-## Indoor Positioning System (IPS) Technical Description
+---
+
+## ⚙️ System Architecture & Data Flow
+
+The project is built on a modular architecture that manages both location tracking and inventory. 
+
+### 1. Central Server
+
+* **Role:** Acts as the central hub for data management and routing.
+* **Backend Software:** Handles data persistence, user authentication, and API endpoints for the client.
+* **MQTT Broker:** The server hosts the MQTT broker, receiving position data from the ESP32 and broadcasting updates to the Client Application.
+
+### 2. Client Application (User Interface)
+
+* **Role:** The primary interface used by the delivery personnel.
+* **Functionality:**
+    * **Live Map Plotting:** Subscribes to the MQTT position topic to **live-plot the user's location** on a store map grid.
+    * **Self-Checkout Interface:** Displays scanned items, manages the cart inventory list, and handles the checkout process.
+
+### 3. RFID Code (Self-Checkout)
+
+* **Role:** Manages the inventory scanning and tracking on the cart.
+* **Code:** Developed to interface with the RFID reader hardware. It reads RFID tags attached to products, transmits the tag IDs to the server for item lookup, and manages the temporary cart inventory list.
+
+---
+
+## 📍 Indoor Positioning System (IPS) Technical Description
 
 This project implements an advanced Indoor Positioning System (IPS) using **Bluetooth Low Energy (BLE) trilateration** and sophisticated filtering techniques on an **ESP32 microcontroller**.
 
@@ -41,7 +67,24 @@ The system is designed for a defined 6x6 meter area and operates as follows:
 | **Positioning Algorithm**| IDW Multilateration | Calculates raw position estimate. |
 | **Filtering (Motion)** | Kalman Filter, Particle Filter | Provides noise reduction and motion stability. |
 
-## Code Structure & Usage
+---
+
+## 🖥️ Hardware & Peripherals (The Cart Build)
+
+The Smart Delivery Cart integrates several key hardware components to fulfill its dual functions.
+
+| Component | Purpose | Details |
+| :--- | :--- | :--- |
+| **Main Processor** | ESP32 | Used for both BLE-IPS processing and communication (MQTT/Wi-Fi). |
+| **Localization Hardware** | 4 x BLE Beacons (Fixed) | Transmit signals used as reference points for the IPS calculation. |
+| **Self-Checkout Hardware**| **RFID Reader Module** | Scans product tags for inventory management. |
+| **User Interface** | Tablet/Display Mount | Runs the Client Application interface for mapping and checkout. |
+| **Housing** | **3D Printed/Custom Enclosure** | Provides a compact, all-in-one chassis for protection and mounting. |
+| **Power System** | Battery/Power Management | Ensures reliable, portable power for all on-cart components. |
+
+---
+
+## 💻 Code Structure & Usage
 
 *(This section is a placeholder. You should fill this in with actual setup instructions for a developer.)*
 
@@ -55,7 +98,7 @@ The system is designed for a defined 6x6 meter area and operates as follows:
 2.  Configure Wi-Fi credentials and MQTT broker details in `config.h`.
 3.  Upload the code to the ESP32.
 
-## Development Status
+## 🚀 Development Status
 
 **Status:** Completed (Final Report Submitted)
 
